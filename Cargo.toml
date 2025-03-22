@@ -1,0 +1,15 @@
+[workspace]
+members = [".", "crates/test-inception"]
+
+[package]
+name = "inception"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+
+[profile.dev.build-override]
+opt-level = 2

@@ -1,6 +1,6 @@
-use proc_macro::{Literal, Span, TokenStream, TokenTree};
+use proc_macro2::{Literal, Span, TokenStream, TokenTree};
 
-use crate::{MResult, rules::Expr};
+use crate::{MResult, macros::replacement::Expr};
 
 use super::Match;
 
@@ -64,4 +64,13 @@ pub(crate) fn count(
     }
 
     Ok(())
+}
+
+pub(crate) fn concat(
+    _args: &[Expr],
+    _matches: &Match,
+    span: Span,
+    _result: &mut TokenStream,
+) -> MResult<()> {
+    bail!("unimplemented" => span);
 }

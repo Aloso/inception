@@ -1,10 +1,13 @@
 use std::iter::Peekable;
 
-use proc_macro::{Delimiter, Punct, Span, TokenStream, TokenTree, token_stream::IntoIter};
+use proc_macro2::{Delimiter, Punct, Span, TokenStream, TokenTree, token_stream::IntoIter};
 
 use crate::{
     MResult,
-    rules::{AstGroup, Expr, Path, Replacement, SpecialReplacement},
+    macros::{
+        Path,
+        replacement::{Expr, Replacement, ReplacementGroup, SpecialReplacement},
+    },
 };
 
 use super::path::parse_path;
@@ -19,7 +22,7 @@ pub(super) fn parse(stream: TokenStream, nesting_limit: u16) -> MResult<Box<[Rep
 
     while let Some(tt) = iter.next() {
         match tt {
-            TokenTree::Group(group) => rep.push(Replacement::Group(AstGroup {
+            TokenTree::Group(group) => rep.push(Replacement::Group(ReplacementGroup {
                 delimiter: group.delimiter().into(),
                 content: parse(group.stream(), nesting_limit - 1)?,
             })),
@@ -91,7 +94,7 @@ fn parse_rep_after_dollar(
                     Ok(Replacement::Special(parse_after_else(iter, ident_span, nesting_limit)?))
                 }
                 _ => {
-                    let path = Path::new(vec![ident.to_string()]);
+                    let path = Path(vec![ident.to_string()]);
                     Ok(Replacement::Special(SpecialReplacement::Path(path)))
                 }
             }
@@ -113,13 +116,13 @@ fn parse_special_rep_group(stream: TokenStream, span: Span) -> MResult<SpecialRe
         if group.delimiter() == Delimiter::Parenthesis {
             let args = parse_func_arguments(group.stream())?;
             let _ = iter.next();
-            if path.path.len() > 1 {
+            if path.0.len() > 1 {
                 bail!("method calls are not supported" => span);
             }
-            let func_segment = path.path.pop().unwrap();
+            let func_segment = path.0.pop().unwrap();
 
             match func_segment.as_str() {
-                "first" | "last" | "count" => {
+                "first" | "last" | "count" | "concat" => {
                     return Ok(SpecialReplacement::Call { func: func_segment, args });
                 }
                 _ => {
@@ -185,7 +188,7 @@ fn parse_after_else(
     recursion_limit: u16,
 ) -> MResult<SpecialReplacement> {
     if let Some(TokenTree::Ident(ident)) = iter.peek() {
-        if ident.to_string() == "if" {
+        if ident == "if" {
             let _ = iter.next();
             if let SpecialReplacement::If { condition, body } =
                 parse_after_if(iter, span, recursion_limit)?
@@ -221,7 +224,7 @@ fn parse_after_for(
     let _ = iter.next();
 
     match iter.next() {
-        Some(TokenTree::Ident(in_id)) if in_id.to_string() == "in" => {
+        Some(TokenTree::Ident(in_id)) if in_id == "in" => {
             let Some(expr) = parse_path(iter)? else {
                 bail!("expected an expression after `in`" => iter.next().map(|t| t.span()).unwrap_or(span));
             };

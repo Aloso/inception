@@ -1,6 +1,6 @@
 use core::fmt;
 
-use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 pub(crate) fn error(s: &str, span: Span) -> TokenStream {
     error_range(s, span, span)
@@ -64,5 +64,17 @@ macro_rules! bail {
             span: $span,
             stream: Some($stream),
         })
+    };
+}
+
+macro_rules! synerr {
+    ($span:expr, $message:literal $(, $e:expr)*) => {
+        return Err(syn::Error::new($span, format!($message $(, $e)*)))
+    };
+}
+
+macro_rules! synbail {
+    ($span:expr, $message:literal $(, $e:expr)*) => {
+        return syn::Error::new($span, format!($message $(, $e)*)).into_compile_error().into()
     };
 }

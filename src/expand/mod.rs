@@ -1,17 +1,18 @@
 mod functions;
 mod matching;
-mod parser;
 
 use std::{str::FromStr, time::Instant};
 
 use matching::{Match, match_patterns};
-pub(crate) use parser::{parse_derive_arguments, parse_expand, parse_single_argument};
-use proc_macro::{Group, Ident, Span, TokenStream, TokenTree};
+use proc_macro2::{Group, Ident, Span, TokenStream, TokenTree};
 
 use crate::{
     Rules,
     errors::MResult,
-    rules::{Literal, Replacement, SpecialReplacement},
+    macros::{
+        Literal,
+        replacement::{Replacement, SpecialReplacement},
+    },
 };
 
 pub(crate) fn expand_macro(
@@ -69,7 +70,7 @@ fn replace_stream(
                 result.extend([TokenTree::Punct(punct.into())]);
             }
             Replacement::Literal(Literal(text)) => {
-                let literal = proc_macro::Literal::from_str(text).unwrap();
+                let literal = proc_macro2::Literal::from_str(text).unwrap();
                 result.extend([TokenTree::Literal(literal)]);
             }
             Replacement::Special(special) => match special {
@@ -84,6 +85,7 @@ fn replace_stream(
                     "first" => functions::first(args, matches, span, result)?,
                     "last" => functions::last(args, matches, span, result)?,
                     "count" => functions::count(args, matches, span, result)?,
+                    "concat" => functions::concat(args, matches, span, result)?,
                     s => bail!("unknown function `{s}`" => span),
                 },
                 SpecialReplacement::If { condition, body } => {

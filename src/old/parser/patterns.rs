@@ -1,14 +1,12 @@
 use std::iter::Peekable;
 
-use proc_macro::{
+use proc_macro2::{
     Delimiter, Ident, Punct, Spacing, Span, TokenStream, TokenTree, token_stream::IntoIter,
 };
 
-use crate::{
-    MResult,
-    rules::{
-        AstGroup, Interspersed, Pattern, Patterns, Quantifier, Repeat, RepeatKind, SpecialPattern,
-    },
+use crate::MResult;
+use crate::macros::pattern::{
+    Interspersed, Pattern, PatternGroup, PatternMatcher, Patterns, Quantifier, Repeat, RepeatKind,
 };
 
 use super::consume_punct;
@@ -23,7 +21,7 @@ pub(super) fn parse(stream: TokenStream, nesting_limit: u16) -> MResult<Patterns
 
     while let Some(tt) = iter.next() {
         match tt {
-            TokenTree::Group(group) => patterns.push(Pattern::Group(AstGroup {
+            TokenTree::Group(group) => patterns.push(Pattern::Group(PatternGroup {
                 delimiter: group.delimiter().into(),
                 content: parse(group.stream(), nesting_limit - 1)?.0,
             })),
@@ -67,7 +65,7 @@ fn parse_pattern_after_dollar(iter: &mut Peekable<IntoIter>, dollar: Punct) -> M
                     repeat.quantifier = Quantifier::Star;
                 }
             }
-            Ok(Pattern::Special(special))
+            Ok(Pattern::Matcher(special))
         }
         TokenTree::Group(group) => {
             bail!("unexpected group delimited by {:?}", group.delimiter() => group.span_open());
@@ -95,17 +93,17 @@ fn parse_pattern_after_dollar(iter: &mut Peekable<IntoIter>, dollar: Punct) -> M
                                 repeat.quantifier = Quantifier::Star;
                             }
                         }
-                        Ok(Pattern::Special(special))
+                        Ok(Pattern::Matcher(special))
                     }
                     TokenTree::Ident(ty) => {
                         let ty = ty.to_string();
                         let _ = iter.next();
                         let mut special =
-                            SpecialPattern { name: Some(ident.to_string()), ty, repeat: None };
+                            PatternMatcher { name: Some(ident.to_string()), ty, repeat: None };
                         if let Some(quantifier) = parse_quantifier(iter) {
                             special.repeat = Some(Repeat { quantifier, interspersed: None });
                         }
-                        Ok(Pattern::Special(special))
+                        Ok(Pattern::Matcher(special))
                     }
                     _ => {
                         bail!("unexpected token {:?}", next.to_string() => next.span());
@@ -113,11 +111,11 @@ fn parse_pattern_after_dollar(iter: &mut Peekable<IntoIter>, dollar: Punct) -> M
                 }
             } else {
                 let ty = ident.to_string();
-                let mut special = SpecialPattern { name: None, ty, repeat: None };
+                let mut special = PatternMatcher { name: None, ty, repeat: None };
                 if let Some(quantifier) = parse_quantifier(iter) {
                     special.repeat = Some(Repeat { quantifier, interspersed: None });
                 }
-                Ok(Pattern::Special(special))
+                Ok(Pattern::Matcher(special))
             }
         }
         TokenTree::Literal(lit) => {
@@ -145,7 +143,7 @@ fn parse_special_pattern_group(
     name: Option<Ident>,
     stream: TokenStream,
     span: Span,
-) -> MResult<SpecialPattern> {
+) -> MResult<PatternMatcher> {
     let mut iter = stream.into_iter().peekable();
     let mut leading = None;
     if let Some(TokenTree::Punct(p)) = iter.peek() {
@@ -202,7 +200,7 @@ fn parse_special_pattern_group(
 
     let interspersed = Some(Interspersed { kind, punct: middle.into() });
     let repeat = Some(Repeat { quantifier: Quantifier::Plus, interspersed });
-    Ok(SpecialPattern { name: name.map(|n| n.to_string()), ty: ident.to_string(), repeat })
+    Ok(PatternMatcher { name: name.map(|n| n.to_string()), ty: ident.to_string(), repeat })
 }
 
 fn consume_two_puncts(iter: &mut Peekable<IntoIter>, c1: char, c2: char) -> bool {

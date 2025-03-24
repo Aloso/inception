@@ -1,11 +1,14 @@
 use std::{collections::HashMap, fmt};
 
-use proc_macro::{Delimiter, Group, Spacing, Span, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, Spacing, Span, TokenStream, TokenTree};
 
 use crate::{
     Rules,
     errors::MResult,
-    rules::{Literal, Path, Pattern, Patterns, Quantifier, SpecialPattern},
+    macros::{
+        Literal, Path,
+        pattern::{Pattern, PatternMatcher, Patterns, Quantifier},
+    },
 };
 
 #[derive(Default, Clone)]
@@ -48,7 +51,7 @@ impl Match {
         // TODO: Avoid expensive clones
         let mut results = vec![(self.tts.clone(), &self.children)];
 
-        for segment in &path.path {
+        for segment in &path.0 {
             results = results
                 .into_iter()
                 .flat_map(|(_, children)| {
@@ -159,7 +162,7 @@ pub(crate) fn match_patterns_impl(
         let pat = &patterns[pattern_idx];
 
         if offset >= result.tts.len() {
-            if let Pattern::Special(SpecialPattern { repeat: Some(repeat), .. }) = pat {
+            if let Pattern::Matcher(PatternMatcher { repeat: Some(repeat), .. }) = pat {
                 if let Quantifier::QuestionMark | Quantifier::Star = repeat.quantifier {
                     pattern_idx += 1;
                     continue;
@@ -209,7 +212,7 @@ pub(crate) fn match_pattern(
             Ok(Matched::Success { offset: offset + 1 })
         }
 
-        (Pattern::Special(special), tt) => {
+        (Pattern::Matcher(special), tt) => {
             let offset_no_leading_punct = offset;
             if let Some(leading) = &special.leading_punct() {
                 match tt {
@@ -268,7 +271,7 @@ pub(crate) fn match_pattern(
 
 fn special_match(
     rules: &Rules,
-    pat: &SpecialPattern,
+    pat: &PatternMatcher,
     offset: usize,
     result: &mut Match,
 ) -> MResult<Matched> {

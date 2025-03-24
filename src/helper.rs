@@ -1,27 +1,37 @@
+use core::fmt;
+
 macro_rules! t {
     (usize $e:expr) => {
-        ::proc_macro::TokenTree::Literal(::proc_macro::Literal::usize_unsuffixed($e))
+        ::proc_macro2::TokenTree::Literal(::proc_macro2::Literal::usize_unsuffixed($e))
     };
 
     (parentheses( $($e:expr),* $(,)? )) => {
-        ::proc_macro::TokenTree::Group(::proc_macro::Group::new(
-            ::proc_macro::Delimiter::Parenthesis, ::proc_macro::TokenStream::from_iter([ $($e),* ])
+        ::proc_macro2::TokenTree::Group(::proc_macro2::Group::new(
+            ::proc_macro2::Delimiter::Parenthesis, ::proc_macro2::TokenStream::from_iter([ $($e),* ])
         ))
     };
     (braces( $($e:expr),* $(,)? )) => {
-        ::proc_macro::TokenTree::Group(::proc_macro::Group::new(
-            ::proc_macro::Delimiter::Brace, ::proc_macro::TokenStream::from_iter([ $($e),* ])
+        ::proc_macro2::TokenTree::Group(::proc_macro2::Group::new(
+            ::proc_macro2::Delimiter::Brace, ::proc_macro2::TokenStream::from_iter([ $($e),* ])
         ))
     };
 
     ($t:expr, $span:expr) => {
-        ::proc_macro::TokenTree::Ident(::proc_macro::Ident::new($t, $span))
+        ::proc_macro2::TokenTree::Ident(::proc_macro2::Ident::new($t, $span))
     };
 
     ($t:literal) => {
-        ::proc_macro::TokenTree::Punct(::proc_macro::Punct::new($t, ::proc_macro::Spacing::Alone))
+        ::proc_macro2::TokenTree::Punct(::proc_macro2::Punct::new($t, ::proc_macro2::Spacing::Alone))
     };
     ($t:literal joint) => {
-        ::proc_macro::TokenTree::Punct(::proc_macro::Punct::new($t, ::proc_macro::Spacing::Joint))
+        ::proc_macro2::TokenTree::Punct(::proc_macro2::Punct::new($t, ::proc_macro2::Spacing::Joint))
     };
+}
+
+pub(super) struct DebugToDisplay<T>(pub(super) T);
+
+impl<T: fmt::Display> fmt::Debug for DebugToDisplay<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
 }

@@ -10,6 +10,12 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
+proc-macro2 = { version = "1.0.94", features = ["nightly"] }
 
-[profile.dev.build-override]
-opt-level = 2
+[dependencies.syn]
+version = "2.0.100"
+default-features = false
+features = ["parsing", "proc-macro", "clone-impls"]
+
+# [profile.dev.build-override]
+# opt-level = 2

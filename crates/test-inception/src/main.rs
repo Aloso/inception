@@ -1,7 +1,7 @@
 inception::rules! {
     match struct as (/* $meta* */ $vis struct $name:ident $generics:generic_params? $struct_rest);
 
-    match vis as (pub) | (pub($vis_inner)) | ();
+    match vis as (pub($vis_inner)) | (pub) | ();
     match vis_inner as (crate) | (self) | (super) | (in $path);
     match path as ();
 
@@ -41,7 +41,7 @@ inception::rules! {
 }
 
 #[inception::attr(Foo1)]
-struct Bar {}
+pub(crate) struct Bar {}
 
 fn main() {
     let _bar = Bar {};

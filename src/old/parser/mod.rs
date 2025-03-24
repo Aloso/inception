@@ -1,9 +1,10 @@
-use proc_macro::{Delimiter, Ident, Span, TokenStream, TokenTree, token_stream::IntoIter};
+use proc_macro2::{Delimiter, Ident, Span, TokenStream, TokenTree, token_stream::IntoIter};
 use std::iter::Peekable;
 
-use crate::errors::MResult;
-
-use super::{MacroRule, MatchRule, Rule, Vis};
+use crate::{
+    errors::MResult,
+    macros::{MacroRule, MatchRule, Rule, Vis},
+};
 
 mod path;
 mod patterns;
@@ -50,7 +51,7 @@ impl RuleParser {
         let Some(TokenTree::Ident(ident)) = self.iter.peek() else {
             return None;
         };
-        if ident.to_string() == expected {
+        if ident == expected {
             self.last_span = ident.span();
             _ = self.iter.next();
             Some(self.last_span)

@@ -1,8 +1,8 @@
 use std::iter::Peekable;
 
-use proc_macro::{TokenTree, token_stream::IntoIter};
+use proc_macro2::{TokenTree, token_stream::IntoIter};
 
-use crate::{MResult, rules::Path};
+use crate::{MResult, macros::Path};
 
 use super::consume_punct;
 
@@ -22,5 +22,5 @@ pub(super) fn parse_path(iter: &mut Peekable<IntoIter>) -> MResult<Option<Path>>
         }
     }
 
-    Ok(Some(Path::new(path)))
+    Ok(Some(Path(path)))
 }
